@@ -169,6 +169,10 @@ export class Resolver {
       return logTransition('early exit', request);
     }
 
+    if (request.specifier === 'require') {
+      return this.external('early require', request, request.specifier);
+    }
+
     request = this.handleFastbootSwitch(request);
     request = this.handleGlobalsCompat(request);
     request = this.handleImplicitModules(request);

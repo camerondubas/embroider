@@ -1,15 +1,24 @@
 import { defineConfig } from "vite";
-import { resolver, hbs, scripts, templateTag, addons } from "@embroider/vite";
+import {
+  resolver,
+  hbs,
+  scripts,
+  templateTag,
+  addons,
+  esBuildResolver,
+} from "@embroider/vite";
 import { resolve } from "path";
 import { babel } from "@rollup/plugin-babel";
+import { readFileSync } from "fs";
+import { transform } from "@babel/core";
 
 const root = "node_modules/.embroider/rewritten-app";
 
 export default defineConfig({
   root,
   plugins: [
-    { ...hbs(), enforce: "pre" },
-    { ...templateTag(), enforce: "pre" },
+    // { ...hbs(), enforce: "pre" },
+    // { ...templateTag(), enforce: "pre" },
     scripts(),
     resolver(),
 
@@ -24,7 +33,10 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
-    exclude: addons(__dirname),
+    include: ["ember-welcome-page"],
+    esbuildOptions: {
+      plugins: [esBuildResolver()],
+    },
   },
   server: {
     watch: {

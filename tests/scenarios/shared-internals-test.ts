@@ -39,14 +39,7 @@ Scenarios.fromProject(() => new Project('shared-internals-tests'))
       test('run tests', async function (assert) {
         let app = await scenario.prepare();
 
-        // if we just try to invoke node directly in a child process, our own
-        // volta settings dominate over the test app's
-        let tryit = await app.execute('volta which node');
-        if (tryit.exitCode !== 0) {
-          throw new Error('unable to locate our node version');
-        }
-        let nodebin = tryit.output.trim();
-        let result = await app.execute(`${nodebin} ./node_modules/qunit/bin/qunit.js ./test.js`);
+        let result = await app.execute(`node ./node_modules/qunit/bin/qunit.js ./test.js`);
         assert.equal(result.exitCode, 0, result.output);
       });
     });

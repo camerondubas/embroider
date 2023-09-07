@@ -58,3 +58,27 @@ jobs:
       - name: suite
         run: ${{ matrix.command }}
         working-directory: ${{ matrix.dir }}
+
+  test-shared-internals:
+    runs-on: ${{matrix.os}}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup
+        with:
+          use_lockfile: false
+      - run: pnpm run test:output --scenario shared-internals
+        working-directory: tests/scenarios
+      - uses: actions/setup-node@v3 # we need to run setup-node after test:output because we're only running the test in node 12
+        with:
+          node-version: 12
+      - run: node ./node_modules/qunit/bin/qunit.js ./test.js
+        working-directory: tests/scenarios/output

@@ -20,13 +20,16 @@ async function githubMatrix() {
   let { include: suites } = JSON.parse(stdout) as { include: { name: string; command: string }[]; name: string[] };
 
   let include = [
-    ...suites.map(s => ({
-      name: `${s.name} ubuntu`,
-      os: 'ubuntu',
-      command: s.command,
-      dir,
-    })),
     ...suites
+      .filter(s => s.name !== 'shared-internals') // shared-internals are tested independenly on node 12
+      .map(s => ({
+        name: `${s.name} ubuntu`,
+        os: 'ubuntu',
+        command: s.command,
+        dir,
+      })),
+    ...suites
+      .filter(s => s.name !== 'shared-internals') // shared-internals are tested independenly on node 12
       .filter(s => s.name !== 'node') // TODO: node tests do not work under windows yet
       .map(s => ({
         name: `${s.name} windows`,

@@ -5,6 +5,8 @@ import { locateEmbroiderWorkingDir, RewrittenPackageCache, WaitForTrees } from '
 import TreeSync from 'tree-sync';
 import type CompatApp from './compat-app';
 import { convertLegacyAddons } from './standalone-addon-build';
+import { mkdirpSync, writeFileSync } from 'fs-extra';
+import { join } from 'path';
 
 // This build stage expects to be run with broccoli memoization enabled in order
 // to get good rebuild performance. We turn it on by default here, but you can
@@ -64,6 +66,9 @@ export default class CompatAddons implements Stage {
       changedMap.get(addons)
     ) {
       this.treeSync.sync();
+      const folder = join(locateEmbroiderWorkingDir(this.compatApp.root), 'rewritten-app', 'node_modules');
+      mkdirpSync(folder);
+      writeFileSync(join(folder, 'superFakeTarget.js'), '');
       RewrittenPackageCache.shared('embroider', this.compatApp.root).invalidateIndex();
     }
     this.didBuild = true;

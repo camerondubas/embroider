@@ -833,7 +833,7 @@ export class Resolver {
       return request.rehome(resolve(pkg.root, 'package.json'));
     } else {
       // otherwise we need to just assume that internal naming is simple
-      return request.alias(request.specifier.replace(pkg.name, '.')).rehome(resolve(pkg.root, 'package.json'));
+      return request.rehome(resolve(pkg.root, '..', 'superFakeTarget.js'));
     }
   }
 

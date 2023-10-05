@@ -35,7 +35,12 @@ export default class CompatAddons implements Stage {
 
   async ready(): Promise<{ outputPath: string }> {
     return {
-      outputPath: resolve(locateEmbroiderWorkingDir(this.compatApp.root), 'rewritten-app'),
+      outputPath: resolve(
+        locateEmbroiderWorkingDir(this.compatApp.root),
+        'rewritten-app',
+        'node_modules',
+        this.compatApp.name
+      ),
     };
   }
 

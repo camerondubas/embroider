@@ -39,7 +39,7 @@ export function esBuildResolver(root = process.cwd()): EsBuildPlugin {
         let src = virtualContent(path, resolverLoader.resolver);
         if (!macrosConfig) {
           macrosConfig = readJSONSync(
-            resolve(locateEmbroiderWorkingDir(root), 'rewritten-app', 'macros-config.json')
+            resolve(locateEmbroiderWorkingDir(root), 'rewritten-app', 'node_modules', 'vite-app', 'macros-config.json')
           ) as PluginItem;
         }
         return { contents: runMacros(src, path, macrosConfig) };
@@ -54,7 +54,7 @@ export function esBuildResolver(root = process.cwd()): EsBuildPlugin {
         }
         if (!macrosConfig) {
           macrosConfig = readJSONSync(
-            resolve(locateEmbroiderWorkingDir(root), 'rewritten-app', 'macros-config.json')
+            resolve(locateEmbroiderWorkingDir(root), 'rewritten-app', 'node_modules', 'vite-app', 'macros-config.json')
           ) as PluginItem;
         }
         return { contents: runMacros(src, path, macrosConfig) };

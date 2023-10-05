@@ -44,6 +44,10 @@ ${summarizePeerDepViolations(violations)}`
     return new Funnel(interior, { destDir: index.packages[pkg.root] });
   });
 
+  let fakeTargets = Object.values(index.packages).map(dir => {
+    return writeFile(join(dir, '..', 'superFakeTarget.js'), '');
+  });
+
   return broccoliMergeTrees([
     ...exteriorTrees,
     new Funnel(compatApp.synthesizeStylesPackage(interiorTrees), {
@@ -53,6 +57,7 @@ ${summarizePeerDepViolations(violations)}`
       destDir: '@embroider/synthesized-vendor',
     }),
     writeFile('index.json', JSON.stringify(index, null, 2)),
+    ...fakeTargets,
   ]);
 }
 
@@ -62,7 +67,7 @@ function buildAddonIndex(compatApp: CompatApp, appPackage: Package, packages: Se
     extraResolutions: {},
   };
   for (let oldPkg of packages) {
-    let newRoot = `${oldPkg.name}.${hashed(oldPkg.root)}`;
+    let newRoot = `${oldPkg.name}.${hashed(oldPkg.root)}/node_modules/${oldPkg.name}`;
     content.packages[oldPkg.root] = newRoot;
     let nonResolvableDeps = oldPkg.nonResolvableDeps;
     if (nonResolvableDeps) {
@@ -75,14 +80,14 @@ function buildAddonIndex(compatApp: CompatApp, appPackage: Package, packages: Se
   // yet. This directory lives outside our rewritten-pacakges directory because
   // it's produced by a separate build stage, and it's easier to have them
   // writing into separate directories.
-  content.packages[compatApp.root] = join('..', 'rewritten-app');
+  content.packages[compatApp.root] = join('..', 'rewritten-app', 'node_modules', compatApp.name);
 
   let nonResolvableDeps = appPackage.nonResolvableDeps;
   if (nonResolvableDeps) {
     let extraRoots = [...nonResolvableDeps.values()].map(v => v.root);
 
     // the app gets extraResolutions support just like every addon does
-    content.extraResolutions[join('..', 'rewritten-app')] = extraRoots;
+    content.extraResolutions[join('..', 'rewritten-app', 'node_modules', compatApp.name)] = extraRoots;
 
     // but it also gets extraResolutions registered against its *original*
     // location, because the app is unique because stage2 needs a Package

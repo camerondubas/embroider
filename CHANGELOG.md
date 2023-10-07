@@ -1,5 +1,23 @@
 # Embroider Changelog
 
+## Release (2023-10-07)
+
+@embroider/addon-dev 4.1.2 (patch)
+@embroider/vite 0.1.4 (patch)
+
+#### :bug: Bug Fix
+* `addon-dev`, `vite`
+  * [#1630](https://github.com/embroider-build/embroider/pull/1630) Bump minimum content-tag version. ([@simonihmig](https://github.com/simonihmig))
+
+#### :house: Internal
+* [#1629](https://github.com/embroider-build/embroider/pull/1629) Randomize port and improve watch mode test ([@chancancode](https://github.com/chancancode))
+* [#1624](https://github.com/embroider-build/embroider/pull/1624) Add app-level watch-mode tests ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 3
+- Godfrey Chan ([@chancancode](https://github.com/chancancode))
+- Simon Ihmig ([@simonihmig](https://github.com/simonihmig))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## Release (2023-10-06)
 
 @embroider/compat 3.2.3 (patch)

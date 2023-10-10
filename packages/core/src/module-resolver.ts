@@ -833,7 +833,9 @@ export class Resolver {
       return request.rehome(resolve(pkg.root, 'package.json'));
     } else {
       // otherwise we need to just assume that internal naming is simple
-      return request.rehome(resolve(pkg.root, '..', 'superFakeTarget.js'));
+      return request.rehome(resolve(pkg.root, '..', 'superFakeTarget.js')).withMeta({
+        resolvedWithinPackage: pkg.root,
+      });
     }
   }
 
@@ -998,6 +1000,13 @@ export class Resolver {
       // not a classic runtime thing. It's better to let it be a build error
       // here.
       return request;
+    }
+
+    if (fromFile.endsWith('superFakeTarget.js')) {
+      if (!request.meta?.resolvedWithinPackage) {
+        throw new Error(`bug: embroider resolver's meta is not propagating`);
+      }
+      fromFile = resolve(request.meta?.resolvedWithinPackage as string, 'package.json');
     }
 
     let pkg = this.packageCache.ownerOfFile(fromFile);

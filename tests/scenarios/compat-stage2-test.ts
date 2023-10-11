@@ -761,7 +761,7 @@ dummyAppScenarios
 
       test('dummy app sees that its being developed', function () {
         let assertFile = expectFile(
-          '../../node_modules/.embroider/rewritten-app/components/inside-dummy-app.js'
+          '../../node_modules/.embroider/rewritten-app/node_modules/dummy/components/inside-dummy-app.js'
         ).transform(build.transpile);
         assertFile.matches(/console\.log\(true\)/);
       });

@@ -13,6 +13,7 @@ const { module: Qmodule, test } = QUnit;
 
 Scenarios.fromProject(() => new Project())
   .map('core-resolver-test', app => {
+    let rewrittenApp = app.addDependency('my-app');
     let appMeta: AppMeta = {
       type: 'app',
       version: 2,
@@ -26,15 +27,15 @@ Scenarios.fromProject(() => new Project())
         fileFilter: '_babel_filter.js',
       },
     };
-    app.pkg = {
+    rewrittenApp.pkg = {
       name: 'my-app',
       keywords: ['ember-addon'],
       'ember-addon': appMeta,
     };
-    app.mergeFiles({
+    rewrittenApp.mergeFiles({
       'index.html': '<script src="./app.js" type="module"></script>',
     });
-    app.addDependency('the-apps-dep', {
+    rewrittenApp.addDependency('the-apps-dep', {
       files: {
         'index.js': '',
       },
@@ -42,12 +43,12 @@ Scenarios.fromProject(() => new Project())
 
     let v1Addon = baseAddon();
     v1Addon.name = 'a-v1-addon';
-    app.addDependency(v1Addon);
+    rewrittenApp.addDependency(v1Addon);
 
     // this is just an empty fixture package, it's the presence of a dependency
     // named ember-auto-import that tells us that the app was allowed to import
     // deps from npm.
-    app.addDependency('ember-auto-import', { version: '2.0.0' });
+    rewrittenApp.addDependency('ember-auto-import', { version: '2.0.0' });
   })
   .forEachScenario(scenario => {
     Qmodule(scenario.name, function (hooks) {
@@ -63,6 +64,7 @@ Scenarios.fromProject(() => new Project())
 
       let configure: (opts?: ConfigureOpts) => Promise<void>;
       let app: PreparedApp;
+      let rewrittenAppDir: string;
 
       function addonPackageJSON(name = 'my-addon', addonMeta?: Partial<AddonMeta>) {
         return JSON.stringify(
@@ -82,10 +84,11 @@ Scenarios.fromProject(() => new Project())
       hooks.beforeEach(async assert => {
         installAuditAssertions(assert);
         app = await scenario.prepare();
+        rewrittenAppDir = resolve(app.dir, 'node_modules', 'my-app');
 
         givenFiles = function (files: Record<string, string>) {
           for (let [filename, contents] of Object.entries(files)) {
-            outputFileSync(resolve(app.dir, filename), contents, 'utf8');
+            outputFileSync(resolve(rewrittenAppDir, filename), contents, 'utf8');
           }
         };
         configure = async function (opts?: ConfigureOpts) {
@@ -95,20 +98,20 @@ Scenarios.fromProject(() => new Project())
             renameModules: {},
             renamePackages: opts?.renamePackages ?? {},
             resolvableExtensions: ['.js', '.hbs'],
-            appRoot: app.dir,
+            appRoot: rewrittenAppDir,
             engines: [
               {
                 packageName: 'my-app',
-                root: app.dir,
+                root: rewrittenAppDir,
                 fastbootFiles: opts?.fastbootFiles ?? {},
                 activeAddons: [
                   {
                     name: 'my-addon',
-                    root: resolve(app.dir, 'node_modules', 'my-addon'),
+                    root: resolve(rewrittenAppDir, 'node_modules', 'my-addon'),
                   },
                   {
                     name: 'a-v1-addon',
-                    root: resolve(app.dir, 'node_modules', 'a-v1-addon'),
+                    root: resolve(rewrittenAppDir, 'node_modules', 'a-v1-addon'),
                   },
                 ],
               },
@@ -124,7 +127,7 @@ Scenarios.fromProject(() => new Project())
             activePackageRules: [
               {
                 package: 'my-app',
-                roots: [app.dir],
+                roots: [rewrittenAppDir],
               },
             ],
           };
@@ -142,7 +145,7 @@ Scenarios.fromProject(() => new Project())
             'node_modules/my-addon/package.json': addonPackageJSON('my-addon', opts?.addonMeta),
           });
 
-          expectAudit = await assert.audit({ app: app.dir, 'reuse-build': true });
+          expectAudit = await assert.audit({ app: rewrittenAppDir, 'reuse-build': true });
         };
       });
 
@@ -613,9 +616,9 @@ Scenarios.fromProject(() => new Project())
         });
 
         test(`known ember-source-provided virtual packages are not externalized when explicitly included in deps`, async function () {
-          let pkg = readJsonSync(resolve(app.dir, 'package.json'));
+          let pkg = readJsonSync(resolve(rewrittenAppDir, 'package.json'));
           pkg.dependencies['rsvp'] = '*';
-          writeJSONSync(resolve(app.dir, 'package.json'), pkg);
+          writeJSONSync(resolve(rewrittenAppDir, 'package.json'), pkg);
           givenFiles({
             'node_modules/rsvp/index.js': '',
             'app.js': `import "rsvp"`,
@@ -760,14 +763,15 @@ Scenarios.fromProject(() => new Project())
         test('app can resolve file in rewritten addon', async function () {
           let index: RewrittenPackageIndex = {
             packages: {
-              [resolve(app.dir, 'node_modules/my-addon')]: 'my-addon.1234',
+              [resolve(rewrittenAppDir, 'node_modules/my-addon')]: 'my-addon.1234/node_modules/my-addon',
             },
             extraResolutions: {},
           };
           givenFiles({
             'node_modules/.embroider/rewritten-packages/index.json': JSON.stringify(index),
-            'node_modules/.embroider/rewritten-packages/my-addon.1234/hello-world.js': ``,
-            'node_modules/.embroider/rewritten-packages/my-addon.1234/package.json': addonPackageJSON(),
+            'node_modules/.embroider/rewritten-packages/my-addon.1234/node_modules/my-addon/hello-world.js': ``,
+            'node_modules/.embroider/rewritten-packages/my-addon.1234/node_modules/my-addon/package.json':
+              addonPackageJSON(),
             'app.js': `import "my-addon/hello-world"`,
           });
 
@@ -776,28 +780,29 @@ Scenarios.fromProject(() => new Project())
           expectAudit
             .module('./app.js')
             .resolves('my-addon/hello-world')
-            .to('./node_modules/.embroider/rewritten-packages/my-addon.1234/hello-world.js');
+            .to('./node_modules/.embroider/rewritten-packages/my-addon.1234/node_modules/my-addon/hello-world.js');
         });
 
         test('moved addon resolves dependencies from its original location', async function () {
           let index: RewrittenPackageIndex = {
             packages: {
-              [resolve(app.dir, 'node_modules/my-addon')]: 'my-addon.1234',
+              [resolve(rewrittenAppDir, 'node_modules/my-addon')]: 'my-addon.1234/node_modules/my-addon',
             },
             extraResolutions: {},
           };
           givenFiles({
             'node_modules/my-addon/node_modules/inner-dep/index.js': '',
             'node_modules/.embroider/rewritten-packages/index.json': JSON.stringify(index),
-            'node_modules/.embroider/rewritten-packages/my-addon.1234/hello-world.js': `import "inner-dep"`,
-            'node_modules/.embroider/rewritten-packages/my-addon.1234/package.json': addonPackageJSON(),
+            'node_modules/.embroider/rewritten-packages/my-addon.1234/node_modules/my-addon/hello-world.js': `import "inner-dep"`,
+            'node_modules/.embroider/rewritten-packages/my-addon.1234/node_modules/my-addon/package.json':
+              addonPackageJSON(),
             'app.js': `import "my-addon/hello-world"`,
           });
 
           await configure({});
 
           expectAudit
-            .module('./node_modules/.embroider/rewritten-packages/my-addon.1234/hello-world.js')
+            .module('./node_modules/.embroider/rewritten-packages/my-addon.1234/node_modules/my-addon/hello-world.js')
             .resolves('inner-dep')
             .to('./node_modules/my-addon/node_modules/inner-dep/index.js');
         });
@@ -805,7 +810,7 @@ Scenarios.fromProject(() => new Project())
         test('implicit modules in moved dependencies', async function () {
           let index: RewrittenPackageIndex = {
             packages: {
-              [resolve(app.dir, 'node_modules/a-v1-addon')]: 'a-v1-addon.1234',
+              [resolve(rewrittenAppDir, 'node_modules/a-v1-addon')]: 'a-v1-addon.1234',
             },
             extraResolutions: {},
           };
